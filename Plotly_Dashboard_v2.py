@@ -17,12 +17,11 @@ df['date']=pd.to_datetime(df['date'])
 
 #create dataframe for the table
 
-df2 = df[['date','content','sourceLabel','Vader_Score_Class','TextBlob_Score_Class','TextBlob_Subj_Class','Topics_Dim','Topics_Vec','Topics_Cluster']]
+
+df2 = df[['date','content','Vader_Score_Class','TextBlob_Subj_Class','TextBlob_Score_Class']]
 
 # Build the app
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
-
-
 
 # Build sidebar
 SIDEBAR_STYLE = {
@@ -32,14 +31,15 @@ SIDEBAR_STYLE = {
     "bottom": 0,
     "width": "16rem",
     "padding": "2rem 1rem",
-    "background-color": "#f8f9fa",
+    "background-color": "#E9EDC9",
+    'text':'white'
 }
 
 # Card content Tweets by Sentiment
 card_content1 = [
     dbc.CardBody(
         [
-            html.H5("Comment input devices", className="card-title text-center"),
+            html.H5("Comment input devices", className="card-title text-center, color:'blue"),
             dcc.Graph(id='sourceLabel', figure=px.pie(
                 data_frame=df,
                 names='sourceLabel',
@@ -75,7 +75,7 @@ card_content3 = [
 
 
 # Application layout
-app.layout = dbc.Container([
+app.layout = html.Div(dbc.Container([
 
     # add navigation bad
     dbc.Card(
@@ -89,9 +89,9 @@ app.layout = dbc.Container([
                 html.P("Please select which Topic Modeling function", className='text-center, mb-4'),
                 dcc.RadioItems(id='topic_model',
                                options=[
-                                   {'label': 'Hierarchy', 'value': 'Topics_Vec'},
-                                   {'label': 'Dimension Reduction', 'value': 'Topics_Cluster'},
-                                   {'label': 'BERTopic', 'value': 'Topics_Dim'},
+                                   {'label': 'Vector Model', 'value': 'Topics_Vec'},
+                                   {'label': 'Cluster Model', 'value': 'Topics_Cluster'},
+                                   {'label': 'Dimention Red. Model', 'value': 'Topics_Dim'},
                                ],
                                value='Topics_Dim'),
 
@@ -100,7 +100,7 @@ app.layout = dbc.Container([
                 dcc.RadioItems(id='sentiment_type',
                                options=[
                                    {'label': 'NLTK VADER', 'value': 'Vader_Score_Class'},
-                                   {'label': 'TextBlob', 'value': 'TextBlob_Score_Class'},
+                                   {'label': 'TextBlob Sentiment', 'value': 'TextBlob_Score_Class'},
                                ],
                                value="TextBlob_Score_Class"),
 
@@ -115,9 +115,10 @@ app.layout = dbc.Container([
     dbc.Col([html.H1("Reputational Risk Discovery Dashboard")], className='text-center text-primary, mb-4', width=12),
     dbc.Row([
 
-        dbc.Col(dbc.Card(card_content1, color="primary", outline=True), width=4),
-        dbc.Col(dbc.Card(card_content2, color="primary", outline=True), width=4),
-        dbc.Col(dbc.Card(card_content3, color="primary", outline=True), width=4),
+
+        #dbc.Col(dbc.Card(card_content1, color="primary", outline=True), width=4),
+        dbc.Col(dbc.Card(card_content2), width=6),
+        dbc.Col(dbc.Card(card_content3), width=6),
 
     ], className="mb-4"),
     dbc.Row([
@@ -133,17 +134,32 @@ app.layout = dbc.Container([
     ]),
     dbc.Row([
 
-        dash_table.DataTable(
+        dbc.Col(dbc.Card(
+            dbc.CardBody([dash_table.DataTable(
             id="table",
             data=df2.to_dict('records'),
             style_data={
                 'whiteSpace': 'normal',
-                'height':'auto'
-            }
-        ),
+                'height':'auto',
+            'textOverflow': 'ellipsis'
+            },
+            sort_mode = 'multi',
+            selected_rows=[],
+            style_as_list_view=True,
+            style_table={'overflowX': 'auto'},
+            style_cell={
+                    'height': 'auto',
+                    # all three widths are needed
+                    'minWidth': '180px', 'width': '180px', 'maxWidth': '180px',
+                    'whiteSpace': 'normal'
+                },
+                virtualization=True
+
+        )])),width=12),
 
     ]),
-])
+]),style={'backgroundColor':'2A9D8F',
+          })
 
 #update the sentiment analysis chart
 @app.callback(
@@ -174,7 +190,13 @@ def update_bar(topic_model):
                  opacity=0.9,
                  barmode='relative',
                  color=topic_model,
-                                  )
+                 title='Number of Tweets by Topic',
+                 labels={
+                     "date": "Dates",
+                     "id": "# of Tweets related to Topic",
+                     topic_model:"Selected model"
+                 },
+                )
     return fig
 
 
@@ -186,7 +208,13 @@ def update_bar(topic_model):
 def update_topic_history(topic_model):
    dff = df
    dff = dff.groupby(['date',topic_model],as_index=False)['id'].count()
-   fig = px.line(data_frame=dff, x='date', y='id', color=topic_model, title="Topics by year")
+   fig = px.line(data_frame=dff, x='date', y='id', color=topic_model, title="Topics by year",
+                 labels={
+                     "date": "Dates",
+                     "id": "# of Tweets related to Topic",
+                     "title": "Topics by Month/Year"
+                 },
+                 )
 
    return fig
 
